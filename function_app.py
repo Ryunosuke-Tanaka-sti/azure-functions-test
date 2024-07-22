@@ -9,8 +9,8 @@ import json
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 
-@app.route(route="test", methods=["GET"])
-def HTTPExample(req: func.HttpRequest) -> func.HttpResponse:
+@app.route(methods=[func.HttpMethod.GET])
+def Hello(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Python HTTP trigger function processed a request.")
 
     key = os.environ.get("KEY_VAULT_URL")
