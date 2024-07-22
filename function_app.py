@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from azure.keyvault.secrets import SecretClient
 from azure.identity import DefaultAzureCredential
+from openai import AzureOpenAI
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -14,27 +15,58 @@ load_dotenv(".env.local")
 def HTTPExample(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Python HTTP trigger function processed a request.")
 
-    key = os.environ.get("KEY_VAULT_URL")
-    credential = DefaultAzureCredential()  # 資格情報の取得
+    # key = os.environ.get("KEY_VAULT_URL")
+    # credential = DefaultAzureCredential()  # 資格情報の取得
+    # client = SecretClient(vault_url=key, credential=credential)
+    # test = client.get_secret("TEST")
+    api_version = os.environ.get("AOAI_API_VERSION")
+    api_key = os.environ.get("AOAI_API_KEY")
+    entrypoint = os.environ.get("AOAI_ENTORYPOINT")
 
-    client = SecretClient(vault_url=key, credential=credential)
-
-    name = req.params.get("name")
-    if not name:
-        try:
-            req_body = req.get_json()
-        except ValueError:
-            pass
-        else:
-            name = req_body.get("name")
-
-    if name:
-        return func.HttpResponse(
-            f"Hello, {name}. This HTTP triggered function executed successfully."
+    aoai_client = AzureOpenAI(
+        api_key=api_key,
+        api_version=api_version,
+        azure_endpoint=entrypoint,
+    )
+    try:
+        response = aoai_client.chat.completions.create(
+            model="gpt-35-deploy",  # model = "deployment_name".
+            messages=[
+                {
+                    "role": "system",
+                    "content": """
+                            以下の条件で文字列を採点してください。
+                            - 文節ごとに区切って、文節ごとに得点をつけてください。
+                            - ポジティブな単語ほど高い得点をつけてください。
+                            - ネガティブな単語ほど低い得点をつけてください。
+                            - 得点は100点から-100点までの範囲で評価してください。
+                            - 得点が5の倍数にならないようにしてください。
+                            - 同じ単語が複数回出てきた場合は、2つ目以降は得点を0にしてください。
+                            - 文節ごとに得点を加算してください。
+                            - 合計得点と文節ごとの得点を出力してください。
+                            - 出力をJSON形式にしてフォーマットとしては以下に従ってください。また、このJSON以外は出力しないでください。
+                            {
+                                "totalScore": 116,
+                                "words": [
+                                    {"word": "美味しい", "score": 71},
+                                    {"word": "ご飯を", "score": 32},
+                                    {"word": "食べる", "score": 13},
+                                ],
+                            }
+                    """,
+                },
+                {
+                    "role": "user",
+                    "content": "美味しいご飯を食べる",
+                },
+            ],
         )
-    else:
-        test = client.get_secret("TEST")
-        print(test.value)
         return func.HttpResponse(
-            f"Hello, {test.value}. This HTTP triggered function executed successfully."
+            f"Hello, {response}. This HTTP triggered function executed successfully."
         )
+
+    except Exception as e:
+        # 例外が発生した場合はスコアを0にする
+        print(e)
+
+    # name = req.params.get("name")
