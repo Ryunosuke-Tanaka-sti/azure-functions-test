@@ -9,7 +9,7 @@ import json
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 
-@app.route(route="HTTPExample")
+@app.route(route="test", methods=["GET"])
 def HTTPExample(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Python HTTP trigger function processed a request.")
 
@@ -19,7 +19,7 @@ def HTTPExample(req: func.HttpRequest) -> func.HttpResponse:
     # test = os.environ.get("TEST")
     test = client.get_secret("TEST")
     return func.HttpResponse(
-        f"{test}",
+        f"{test.value}",
     )
     # api_version = os.environ.get("AOAI_API_VERSION")
     # api_key = client.get_secret("AOAI-API-KEY")
