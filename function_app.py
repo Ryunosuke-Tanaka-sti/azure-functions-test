@@ -1,16 +1,17 @@
 import azure.functions as func
 import logging
-import os
-from azure.keyvault.secrets import SecretClient
-from azure.identity import DefaultAzureCredential
-from openai import AzureOpenAI
-import json
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 
 @app.route(methods=[func.HttpMethod.GET])
 def Hello(req: func.HttpRequest) -> func.HttpResponse:
+    from azure.keyvault.secrets import SecretClient
+    from azure.identity import DefaultAzureCredential
+    from openai import AzureOpenAI
+    import os
+    import json
+
     logging.info("Python HTTP trigger function processed a request.")
 
     key = os.environ.get("KEY_VAULT_URL")
