@@ -4,33 +4,38 @@ import logging
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 
-@app.route(methods=[func.HttpMethod.GET])
-def Hello(req: func.HttpRequest) -> func.HttpResponse:
+def Create_aoai_client():
     from azure.keyvault.secrets import SecretClient
     from azure.identity import DefaultAzureCredential
     from openai import AzureOpenAI
     import os
-    import json
-
-    logging.info("Python HTTP trigger function processed a request.")
 
     key = os.environ.get("KEY_VAULT_URL")
     credential = DefaultAzureCredential()  # 資格情報の取得
     client = SecretClient(vault_url=key, credential=credential)
-    # test = os.environ.get("TEST")
-    # test = client.get_secret("TEST")
-    # return func.HttpResponse(
-    #     f"{test.value}",
-    # )
     api_version = os.environ.get("AOAI_API_VERSION")
     api_key = client.get_secret("AOAI-API-KEY")
     entrypoint = client.get_secret("AOAI-ENDPOINT")
-
     aoai_client = AzureOpenAI(
         api_key=api_key.value,
         api_version=api_version,
         azure_endpoint=entrypoint.value,
     )
+    return aoai_client
+
+
+@app.function_name("AOAI_Chat")
+@app.route(methods=[func.HttpMethod.POST])
+def AOAI_Chat(req: func.HttpRequest) -> func.HttpResponse:
+    import json
+
+    logging.info("Python HTTP trigger function processed a request.")
+
+    data = req.get_json()
+    message = f"{data['message']}"
+
+    aoai_client = Create_aoai_client()
+
     try:
         response = aoai_client.chat.completions.create(
             model="gpt-35-deploy",  # model = "deployment_name".
@@ -60,18 +65,23 @@ def Hello(req: func.HttpRequest) -> func.HttpResponse:
                 },
                 {
                     "role": "user",
-                    "content": "美味しいご飯を食べる",
+                    "content": message,
                 },
             ],
         )
         result = json.loads(response.choices[0].message.content)
+        data = {
+            "score": result["totalScore"],
+            "message": message,
+            "row": result,
+        }
 
         return func.HttpResponse(
-            f"totalScore: {result['totalScore']}, words: {result['words']}",
+            json.dumps(data),
+            mimetype="application/json",
         )
 
     except Exception as e:
-        # 例外が発生した場合はスコアを0にする
         print(e)
 
     # name = req.params.get("name")
