@@ -157,6 +157,7 @@ def AOAI_Chat(
 
     except Exception as e:
         print(e)
+        logging.error(e)
         data = {
             "score": 0,
             "message": "エラーが出ちゃいました",
