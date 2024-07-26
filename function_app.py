@@ -24,10 +24,47 @@ def Create_aoai_client():
     return aoai_client
 
 
+def Create_cosmos_container():
+    from azure.cosmos import CosmosClient
+    import os
+    from azure.keyvault.secrets import SecretClient
+    from azure.identity import DefaultAzureCredential
+    import os
+
+    key = os.environ.get("KEY_VAULT_URL")
+    credential = DefaultAzureCredential()  # 資格情報の取得
+    client = SecretClient(vault_url=key, credential=credential)
+    try:
+        api_key = os.environ.get("COSMOS_API_KEY")
+        uri = os.environ.get("COSMOS_URI")
+
+        api_key = client.get_secret("COSMOS-API-KEY")
+        uri = client.get_secret("COSMOS-URL")
+
+        client = CosmosClient(url=uri.value, credential=api_key.value)
+
+        database_name = os.environ.get("COSMOS_DATABASE_NAME")
+        container_name = os.environ.get("COSMOS_CONTAINER_NAME")
+
+        db = client.get_database_client(database_name)
+        container = db.get_container_client(container_name)
+        return 1, container
+    except Exception as err:
+        return 0, err
+
+
 @app.function_name("AOAI_Chat")
 @app.route(methods=[func.HttpMethod.POST])
-def AOAI_Chat(req: func.HttpRequest) -> func.HttpResponse:
+
+# https://learn.microsoft.com/ja-jp/azure/azure-functions/functions-add-output-binding-cosmos-db-vs-code?tabs=isolated-process%2Cv2&pivots=programming-language-python
+# https://qiita.com/neet_and_neet/items/5e82aec8a25752ce16aa
+def AOAI_Chat(
+    req: func.HttpRequest,
+) -> func.HttpResponse:
     import json
+    import uuid
+
+    id = str(uuid.uuid4())
 
     logging.info("Python HTTP trigger function processed a request.")
 
@@ -38,7 +75,7 @@ def AOAI_Chat(req: func.HttpRequest) -> func.HttpResponse:
 
     try:
         response = aoai_client.chat.completions.create(
-            model="gpt-35-deploy",  # model = "deployment_name".
+            model="gpt-4o",  # model = "deployment_name".
             messages=[
                 {
                     "role": "system",
@@ -65,11 +102,48 @@ def AOAI_Chat(req: func.HttpRequest) -> func.HttpResponse:
                 },
                 {
                     "role": "user",
+                    "content": "いつも色々と配慮して頂き本当に感謝です",
+                },
+                {
+                    "role": "assistant",
+                    "content": """{
+                            "totalScore": 127,
+                            "words": [
+                                {"word": "いつも", "score": 3},
+                                {"word": "色々と", "score": -7},
+                                {"word": "配慮して", "score": 14},
+                                {"word": "頂き", "score": 38},
+                                {"word": "本当に", "score": 6},
+                                {"word": "感謝です", "score": 73},
+                            ],
+                        }""",
+                },
+                {
+                    "role": "user",
+                    "content": "今週は忙しすぎてしんどい",
+                },
+                {
+                    "role": "assistant",
+                    "content": """{
+                        "totalScore": -84,
+                        "words": [
+                            {"word": "今週は", "score": 19},
+                            {"word": "忙しすぎて", "score": -21},
+                            {"word": "しんどい", "score": -82},
+                        ],
+                    }""",
+                },
+                {
+                    "role": "user",
                     "content": message,
                 },
             ],
         )
         result = json.loads(response.choices[0].message.content)
+        _, cosmos_container = Create_cosmos_container()
+        cosmos_container.upsert_item(
+            dict(id=id, message=message, score=result["totalScore"], row=result)
+        )
         data = {
             "score": result["totalScore"],
             "message": message,
@@ -83,5 +157,13 @@ def AOAI_Chat(req: func.HttpRequest) -> func.HttpResponse:
 
     except Exception as e:
         print(e)
-
+        data = {
+            "score": 0,
+            "message": "エラーが出ちゃいました",
+            "row": {"error": "errorが出ちゃいました"},
+        }
+        return func.HttpResponse(
+            json.dumps(data),
+            mimetype="application/json",
+        )
     # name = req.params.get("name")
