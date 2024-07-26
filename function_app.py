@@ -156,12 +156,11 @@ def AOAI_Chat(
         )
 
     except Exception as e:
-        print(e)
         logging.error(e)
         data = {
             "score": 0,
             "message": "エラーが出ちゃいました",
-            "row": {"error": "errorが出ちゃいました"},
+            "row": e,
         }
         return func.HttpResponse(
             json.dumps(data),
