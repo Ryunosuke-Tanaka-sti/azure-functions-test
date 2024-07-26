@@ -24,33 +24,33 @@ def Create_aoai_client():
     return aoai_client
 
 
-def Create_cosmos_container():
-    from azure.cosmos import CosmosClient
-    import os
-    from azure.keyvault.secrets import SecretClient
-    from azure.identity import DefaultAzureCredential
-    import os
+# def Create_cosmos_container():
+#     from azure.cosmos import CosmosClient
+#     import os
+#     from azure.keyvault.secrets import SecretClient
+#     from azure.identity import DefaultAzureCredential
+#     import os
 
-    key = os.environ.get("KEY_VAULT_URL")
-    credential = DefaultAzureCredential()  # 資格情報の取得
-    client = SecretClient(vault_url=key, credential=credential)
-    try:
-        api_key = os.environ.get("COSMOS_API_KEY")
-        uri = os.environ.get("COSMOS_URI")
+#     key = os.environ.get("KEY_VAULT_URL")
+#     credential = DefaultAzureCredential()  # 資格情報の取得
+#     client = SecretClient(vault_url=key, credential=credential)
+#     try:
+#         api_key = os.environ.get("COSMOS_API_KEY")
+#         uri = os.environ.get("COSMOS_URI")
 
-        api_key = client.get_secret("COSMOS-API-KEY")
-        uri = client.get_secret("COSMOS-URL")
+#         api_key = client.get_secret("COSMOS-API-KEY")
+#         uri = client.get_secret("COSMOS-URL")
 
-        client = CosmosClient(url=uri.value, credential=api_key.value)
+#         client = CosmosClient(url=uri.value, credential=api_key.value)
 
-        database_name = os.environ.get("COSMOS_DATABASE_NAME")
-        container_name = os.environ.get("COSMOS_CONTAINER_NAME")
+#         database_name = os.environ.get("COSMOS_DATABASE_NAME")
+#         container_name = os.environ.get("COSMOS_CONTAINER_NAME")
 
-        db = client.get_database_client(database_name)
-        container = db.get_container_client(container_name)
-        return 1, container
-    except Exception as err:
-        return 0, err
+#         db = client.get_database_client(database_name)
+#         container = db.get_container_client(container_name)
+#         return 1, container
+#     except Exception as err:
+#         return 0, err
 
 
 @app.function_name("AOAI_Chat")
@@ -140,10 +140,10 @@ def AOAI_Chat(
             ],
         )
         result = json.loads(response.choices[0].message.content)
-        _, cosmos_container = Create_cosmos_container()
-        cosmos_container.upsert_item(
-            dict(id=id, message=message, score=result["totalScore"], row=result)
-        )
+        # _, cosmos_container = Create_cosmos_container()
+        # cosmos_container.upsert_item(
+        #     dict(id=id, message=message, score=result["totalScore"], row=result)
+        # )
         data = {
             "score": result["totalScore"],
             "message": message,
