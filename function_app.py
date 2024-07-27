@@ -158,7 +158,7 @@ def AOAI_Chat(
                 messages=[
                     {
                         "role": "system",
-                        "content": "Jsonファイルを出力してください。",
+                        "content": "以下の情報がJson形式で読み込むことができません。修正してJsonで出力してください。",
                     },
                     {
                         "role": "user",
