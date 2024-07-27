@@ -139,21 +139,44 @@ def AOAI_Chat(
                 },
             ],
         )
-        result = json.loads(response.choices[0].message.content)
-        # _, cosmos_container = Create_cosmos_container()
-        # cosmos_container.upsert_item(
-        #     dict(id=id, message=message, score=result["totalScore"], row=result)
-        # )
-        data = {
-            "score": result["totalScore"],
-            "message": message,
-            "row": result,
-        }
+        try:
+            result = json.loads(response.choices[0].message.content)
+            data = {
+                "score": result["totalScore"],
+                "message": message,
+                "row": result,
+            }
 
-        return func.HttpResponse(
-            json.dumps(data),
-            mimetype="application/json",
-        )
+            return func.HttpResponse(
+                json.dumps(data),
+                mimetype="application/json",
+            )
+
+        except Exception as e:
+            check = aoai_client.chat.completions.create(
+                model="gpt-4o",  # model = "deployment_name".
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Jsonファイルを出力してください。",
+                    },
+                    {
+                        "role": "user",
+                        "content": response.choices[0].message.content,
+                    },
+                ],
+            )
+            result = json.loads(check.choices[0].message.content)
+
+            data = {
+                "score": result["totalScore"],
+                "message": message,
+                "row": result,
+            }
+            return func.HttpResponse(
+                json.dumps(data),
+                mimetype="application/json",
+            )
 
     except Exception as e:
         logging.error(e)
