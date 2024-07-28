@@ -10,16 +10,13 @@ def Create_aoai_client():
     from openai import AzureOpenAI
     import os
 
-    key = os.environ.get("KEY_VAULT_URL")
-    credential = DefaultAzureCredential()  # 資格情報の取得
-    client = SecretClient(vault_url=key, credential=credential)
     api_version = os.environ.get("AOAI_API_VERSION")
-    api_key = client.get_secret("AOAI-API-KEY")
-    entrypoint = client.get_secret("AOAI-ENDPOINT")
+    api_key = os.environ.get("AOAI_API_KEY")
+    entrypoint = os.environ.get("AOAI_ENDOPOINT")
     aoai_client = AzureOpenAI(
-        api_key=api_key.value,
+        api_key=api_key,
         api_version=api_version,
-        azure_endpoint=entrypoint.value,
+        azure_endpoint=entrypoint,
     )
     return aoai_client
 
@@ -62,9 +59,6 @@ def AOAI_Chat(
     req: func.HttpRequest,
 ) -> func.HttpResponse:
     import json
-    import uuid
-
-    id = str(uuid.uuid4())
 
     logging.info("Python HTTP trigger function processed a request.")
 
