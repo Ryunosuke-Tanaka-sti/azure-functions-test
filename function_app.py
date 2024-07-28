@@ -148,11 +148,21 @@ def AOAI_Chat(
 
         except Exception as e:
             check = aoai_client.chat.completions.create(
-                model="gpt-4o",  # model = "deployment_name".
+                model="gpt-35-deploy",  # model = "deployment_name".
                 messages=[
                     {
                         "role": "system",
-                        "content": "以下の情報がJson形式で読み込むことができません。修正してJsonで出力してください。",
+                        "content": """
+                         - 出力をJSON形式にしてフォーマットとしては以下のサンプルに従ってください。
+                            {
+                                "totalScore": 116,
+                                "words": [
+                                    {"word": "美味しい", "score": 71},
+                                    {"word": "ご飯を", "score": 32},
+                                    {"word": "食べる", "score": 13},
+                                ],
+                            }
+                        """,
                     },
                     {
                         "role": "user",
